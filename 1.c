@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
 
-void f(uint64_t N, uint32_t X) {
-
 uint8_t Sbox[8][16] = 
     {
         {4,10,9,2,13,8,0,14,6,11,1,12,7,15,5,3},
@@ -15,26 +13,54 @@ uint8_t Sbox[8][16] =
         {1,15,13,0,5,7,10,4,9,2,3,14,6,11,8,12}
     };
 
-uint32_t N1, N2, R, R1;
-int S[8], S1[8];
+int f(int block, int key) {
+	int L, R;
+	uint8_t	S, index;
 
-	N1 = (uint32_t) N;
-	N2 = (uint32_t) N << 32;
-
-	for (int i = 0, j = 3;int i < 32; --j, i += 8)   
-	    R += (uint32_t(N[j]) + uint32_t(X[j]))<< i;
+	block = (block + key) % (4294967296);
 
 	for (int i = 0; i < 8; i++) {
-		S[i] = R << 4 * i;
-		S1[i] = Sbox[S[i]];
-		/* Дописать*/
-	}
- 		S1 = S1 << 11;
-		S1 = S1 xor N2;
-		N2 = N1;
-		N1 = S;
-
-		return N;
+		index = (uint8_t)(block >> (4 * i) & 0x0f);
+		S = Sbox[i][index];
+		R |= (int) S << (4 * i);
 	}
 
+  	R = (R << 11) >> 21;
+
+   	return R;
+}
+
+
+
+void Encrypt(int * left, int * right, int rounds, int * key) {
+    int i, temp;
 	
+    for ( i = 0; i < rounds; i++ ) {
+        temp = *right ^ f( *left, key[i] );
+        *right = *left;
+        *left = temp;
+    }
+}
+
+void Decrypt (int * left, int * right, int rounds, int * key) {
+    int i, temp;
+
+    for ( i = rounds - 1; i >= 0; i-- ){
+        temp = *left ^ f( *right, key[i] );
+        *left = *right;
+        *right = temp;
+    }
+}
+
+int main() {
+	int key[] = {1, 2, 3, 4, 5, 6, 7, 8};
+	int a = 1;
+	int b = 2;
+
+	Encrypt(&a, &b, 8, key);
+	Decrypt(&a, &b, 8, key);
+
+	printf("%d %d\n", a,  b);
+
+	return 0;
+}
